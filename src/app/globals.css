@@ -2,16 +2,16 @@
 
 /* ── Tokens ─────────────────────────────────────────────────────────────── */
 :root {
-  --bg: #07080a;
-  --bg-2: #0d0f12;
-  --bg-3: #14171b;
-  --ink: #eef0f2;
-  --ink-2: #a9adb5;
-  --ink-3: #858a93;
-  --line: rgb(255 255 255 / 0.08);
-  /* Overridden per site from the backend profile. */
-  --accent: #c6ff3d;
-  --accent-ink: #07080a;
+  /* "Cyber cyan" — keep in sync with src/lib/theme.ts. */
+  --bg: #0b0d10;
+  --bg-2: #12151a;
+  --bg-3: #191d24;
+  --ink: #f3f4f6;
+  --ink-2: #9ca3af;
+  --ink-3: #7f8792;
+  --line: rgb(140 230 255 / 0.08);
+  --accent: #00f0ff;
+  --accent-ink: #0b0d10;
   --gutter: clamp(1rem, 4vw, 3.5rem);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);

@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import type { Profile } from "./types";
 import { siteUrl } from "./format";
+import { theme } from "./theme";
 
 export const ogSize = { width: 1200, height: 630 };
 
@@ -23,19 +24,19 @@ export async function uploadedOg(url: string | null) {
 
 /** The generated 1200×630 card: kicker, big title, one line of context, name and site. */
 export function ogCard(profile: Profile, card: { kicker: string; title: string; subtitle?: string; tags?: string[] }) {
-  const accent = /^#[0-9a-f]{6}$/i.test(profile.accent) ? profile.accent : "#c6ff3d";
+  const accent = theme.accent;
   const host = siteUrl().replace(/^https?:\/\//, "");
   const long = card.title.length > 38;
   return new ImageResponse(
     (
-      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", background: "#07080a", color: "#eef0f2", padding: 72 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 28, color: "#a9adb5" }}>
+      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", background: theme.bg, color: theme.ink, padding: 72 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 28, color: theme.ink2 }}>
           <div style={{ width: 14, height: 14, borderRadius: 999, background: accent }} />
           {card.kicker}
         </div>
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ fontSize: long ? 76 : 104, fontWeight: 700, letterSpacing: long ? -3 : -5, lineHeight: 1 }}>{card.title}</div>
-          {card.subtitle && <div style={{ marginTop: 28, fontSize: 34, color: "#a9adb5", maxWidth: 1000, lineHeight: 1.3 }}>{card.subtitle}</div>}
+          {card.subtitle && <div style={{ marginTop: 28, fontSize: 34, color: theme.ink2, maxWidth: 1000, lineHeight: 1.3 }}>{card.subtitle}</div>}
           {card.tags && card.tags.length > 0 && (
             <div style={{ display: "flex", gap: 12, marginTop: 28 }}>
               {card.tags.slice(0, 5).map((t) => (
@@ -46,8 +47,8 @@ export function ogCard(profile: Profile, card: { kicker: string; title: string; 
             </div>
           )}
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 28, color: "#a9adb5" }}>
-          <div style={{ display: "flex", color: "#eef0f2" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 28, color: theme.ink2 }}>
+          <div style={{ display: "flex", color: theme.ink }}>
             {profile.name} · {profile.role}
           </div>
           <div style={{ display: "flex" }}>{host}</div>
@@ -60,10 +61,10 @@ export function ogCard(profile: Profile, card: { kicker: string; title: string; 
 
 /** The initials mark used for favicons and the app icon. */
 export function iconMark(profile: Profile, initials: string, size: number) {
-  const accent = /^#[0-9a-f]{6}$/i.test(profile.accent) ? profile.accent : "#c6ff3d";
+  const accent = theme.accent;
   return new ImageResponse(
     (
-      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: accent, color: "#07080a", fontSize: size * 0.46, fontWeight: 700, letterSpacing: -size * 0.02, borderRadius: size * 0.2 }}>
+      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: accent, color: theme.bg, fontSize: size * 0.46, fontWeight: 700, letterSpacing: -size * 0.02, borderRadius: size * 0.2 }}>
         {initials}
       </div>
     ),

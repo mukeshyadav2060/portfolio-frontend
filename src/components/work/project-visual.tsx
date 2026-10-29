@@ -19,7 +19,7 @@ export function ProjectVisual({ project, priority = false, sizes = "(min-width: 
       role="img"
       aria-label={`${project.title}: ${project.category}`}
       className="relative flex aspect-[16/10] w-full flex-col justify-between overflow-hidden rounded-[10px] p-[6%] [container-type:inline-size]"
-      style={{ background: accent, color: "#07080a" }}
+      style={{ background: accent, color: "var(--bg)" }}
     >
       <div className="flex justify-between text-[clamp(0.7rem,1vw,0.95rem)] font-medium">
         <span>{project.category}</span>

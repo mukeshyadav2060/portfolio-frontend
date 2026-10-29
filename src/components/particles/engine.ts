@@ -113,7 +113,7 @@ void main() {
 
 function hexToRgb(hex: string): [number, number, number] {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
-  const n = m ? parseInt(m[1], 16) : 0xc6ff3d;
+  const n = m ? parseInt(m[1], 16) : 0x00f0ff;
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }
 
@@ -253,7 +253,7 @@ export function startField(
     dim: u("uDim"),
   };
   gl.uniform3fv(U.accent, hexToRgb(opts.accent));
-  gl.uniform3fv(U.cool, [0.42, 0.55, 1.0]);
+  gl.uniform3fv(U.cool, [0, 0.639, 1.0]);
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
   gl.clearColor(0, 0, 0, 0);

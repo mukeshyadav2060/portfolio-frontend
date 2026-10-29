@@ -50,10 +50,10 @@ function Field({
       <span aria-hidden className="absolute inset-x-0 bottom-0 h-px bg-ink/15" />
       <span
         aria-hidden
-        className={`absolute inset-x-0 bottom-0 h-0.5 origin-left transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] peer-focus:scale-x-100 ${error ? "scale-x-100 bg-[#ff6b6b]" : "scale-x-0 bg-accent"}`}
+        className={`absolute inset-x-0 bottom-0 h-0.5 origin-left transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] peer-focus:scale-x-100 ${error ? "scale-x-100 bg-[#ff4d6d]" : "scale-x-0 bg-accent"}`}
       />
       {error && (
-        <p id={`c-${name}-err`} className="mt-2 text-sm text-[#ff8a8a]">
+        <p id={`c-${name}-err`} className="mt-2 text-sm text-[#ff7a8f]">
           {error}
         </p>
       )}
@@ -115,7 +115,7 @@ export function ContactForm() {
       </div>
 
       {state.status === "error" && (
-        <p role="alert" className="text-[#ff8a8a]">
+        <p role="alert" className="text-[#ff7a8f]">
           {state.message}
         </p>
       )}

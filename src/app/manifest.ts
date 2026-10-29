@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getProfile } from "@/lib/api";
 import { initialsOf } from "@/lib/format";
+import { theme } from "@/lib/theme";
 
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
   const p = await getProfile();
@@ -10,8 +11,8 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     description: p.seoDescription || p.intro,
     start_url: "/",
     display: "standalone",
-    background_color: "#07080a",
-    theme_color: "#07080a",
+    background_color: theme.bg,
+    theme_color: theme.bg,
     categories: ["portfolio", "technology"],
     icons: [
       { src: "/icon", sizes: "192x192", type: "image/png" },

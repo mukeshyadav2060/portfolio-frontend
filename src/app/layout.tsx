@@ -5,6 +5,7 @@ import { ViewTransition } from "react";
 import "./globals.css";
 import { getPosts, getProfile, getProjects } from "@/lib/api";
 import { initialsOf, siteUrl } from "@/lib/format";
+import { theme } from "@/lib/theme";
 import { Header, NAV } from "@/components/site/header";
 import { Footer } from "@/components/site/footer";
 import { CommandPalette, type Command } from "@/components/site/command-palette";
@@ -56,7 +57,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#07080a",
+  themeColor: theme.bg,
   colorScheme: "dark",
 };
 
@@ -64,7 +65,7 @@ export const viewport: Viewport = {
 function inkFor(hex: string) {
   const n = parseInt(hex.replace("#", ""), 16);
   const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 140 ? "#07080a" : "#ffffff";
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 140 ? theme.bg : "#ffffff";
 }
 
 async function currentYear() {
@@ -79,7 +80,7 @@ const bootScript = `document.documentElement.classList.add('js');setTimeout(func
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const [profile, projects, posts, year] = await Promise.all([getProfile(), getProjects(), getPosts(), currentYear()]);
-  const accent = /^#[0-9a-f]{6}$/i.test(profile.accent) ? profile.accent : "#c6ff3d";
+  const accent = theme.accent;
   // Writing only appears in navigation once something is published.
   const nav = posts.length ? NAV : NAV.filter((n) => n.id !== "writing");
 
