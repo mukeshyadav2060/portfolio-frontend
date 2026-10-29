@@ -11,9 +11,16 @@ export function RotatingWord({ words }: { words: string[] }) {
     return () => clearInterval(id);
   }, [words.length]);
 
+  // Every word sits invisibly in the same grid cell, so the slot is always as wide as the
+  // longest one: the line wraps the same way for every word and the page never shifts.
   return (
-    <span className="relative inline-block text-accent" style={{ perspective: "400px" }}>
-      <span key={i} className="word-in" aria-live="off">
+    <span className="relative inline-grid text-accent" style={{ perspective: "400px" }}>
+      {words.map((w) => (
+        <span key={w} aria-hidden className="invisible col-start-1 row-start-1 whitespace-nowrap">
+          {w}
+        </span>
+      ))}
+      <span key={i} className="word-in col-start-1 row-start-1 whitespace-nowrap" aria-live="off">
         {words[i]}
       </span>
       <span className="sr-only">{words.join(", ")}</span>
