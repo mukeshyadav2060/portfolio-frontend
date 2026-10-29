@@ -24,6 +24,8 @@ const nextConfig: NextConfig = {
         port: backend.port,
         pathname: "/uploads/**",
       },
+      // Production uploads live in Vercel Blob.
+      { protocol: "https", hostname: "*.public.blob.vercel-storage.com", pathname: "/uploads/**" },
       { protocol: "https", hostname: "avatars.githubusercontent.com" },
     ],
     // Only needed when the backend runs on this machine during development.
