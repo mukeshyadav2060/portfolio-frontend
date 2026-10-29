@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { prefersReducedMotion } from "@/lib/scroll";
 
 /**
  * The header logo. From another page it is a normal link home; on the home page itself it
- * reloads the page from the top, so the hero plays again and any #section hash is dropped.
+ * scrolls smoothly back to the top and drops any #section hash from the address.
  */
 export function LogoLink({ className, children }: { className: string; children: React.ReactNode }) {
   const pathname = usePathname();
@@ -16,12 +17,11 @@ export function LogoLink({ className, children }: { className: string; children:
       onClick={(e) => {
         if (pathname !== "/" || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
         e.preventDefault();
-        // Jump first so the reload can't restore the old position.
-        history.scrollRestoration = "manual";
-        window.__lenis?.scrollTo(0, { immediate: true });
-        scrollTo(0, 0);
-        // A real reload, not router.push: the hero entrance and particles start over.
-        location.assign(new URL("/", location.origin).href);
+        // Same scroller as scrollToHash(), aimed at 0 so the header's scroll padding can't stop it short.
+        const instant = prefersReducedMotion();
+        if (window.__lenis) window.__lenis.scrollTo(0, { immediate: instant, duration: 1.1 });
+        else scrollTo({ top: 0, behavior: instant ? "auto" : "smooth" });
+        if (location.hash) history.pushState(history.state, "", "/");
       }}
     >
       {children}
