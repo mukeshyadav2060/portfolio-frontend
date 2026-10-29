@@ -12,7 +12,9 @@ import { SplitWords } from "@/components/motion/split-words";
 
 export async function generateStaticParams() {
   const posts = await getPosts();
-  return posts.map((p) => ({ slug: p.slug }));
+  // Cache Components needs at least one param; the placeholder renders as a 404 and posts
+  // published later still render on their first visit.
+  return posts.length ? posts.map((p) => ({ slug: p.slug })) : [{ slug: "__placeholder__" }];
 }
 
 export async function generateMetadata({ params }: PageProps<"/blog/[slug]">): Promise<Metadata> {

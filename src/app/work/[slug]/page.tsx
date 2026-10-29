@@ -13,7 +13,8 @@ import { SplitWords } from "@/components/motion/split-words";
 
 export async function generateStaticParams() {
   const projects = await getProjects();
-  return projects.map((p) => ({ slug: p.slug }));
+  // Same placeholder rule as the blog: never return an empty list under Cache Components.
+  return projects.length ? projects.map((p) => ({ slug: p.slug })) : [{ slug: "__placeholder__" }];
 }
 
 export async function generateMetadata({ params }: PageProps<"/work/[slug]">): Promise<Metadata> {
