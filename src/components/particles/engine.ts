@@ -30,6 +30,7 @@ uniform float uScroll;
 uniform float uPointer;
 uniform vec2 uMouse;
 uniform vec2 uOffset;
+uniform float uDim;
 
 varying float vAlpha;
 varying float vTone;
@@ -84,6 +85,8 @@ void main() {
   vAlpha = mix(vAlpha, 0.9, uRing) * (0.75 + push);
   vTone = clamp(aRand.y * 0.6 + 0.2 + aShape.y * 0.45, 0., 1.);
   vStar = uScatter * (1.0 - uRing);
+  // The initials and ring are dimmed where they sit behind text; the starfield never is.
+  vAlpha *= mix(uDim, 1.0, vStar);
 }
 `;
 
@@ -247,6 +250,7 @@ export function startField(
     accent: u("uAccent"),
     cool: u("uCool"),
     fade: u("uFade"),
+    dim: u("uDim"),
   };
   gl.uniform3fv(U.accent, hexToRgb(opts.accent));
   gl.uniform3fv(U.cool, [0.42, 0.55, 1.0]);
@@ -272,6 +276,8 @@ export function startField(
     // The shape is 2 units wide; scale so it spans ~31% of the screen (85% on phones).
     gl.uniform2fv(U.offset, wide ? [(0.56 * aspect) / 0.81, 0.06] : [0, -0.58]);
     gl.uniform1f(U.scale, wide ? (0.62 * aspect) / (2 * 0.81) : Math.min(0.62, (1.7 * aspect) / (2 * 0.81)));
+    // On phones the initials and the contact ring overlap the copy, so they stay a backdrop.
+    gl.uniform1f(U.dim, wide ? 1 : 0.32);
   };
   resize();
 

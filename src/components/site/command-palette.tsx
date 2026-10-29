@@ -16,19 +16,6 @@ export type Command = {
 
 const OPEN_EVENT = "palette:open";
 
-/** Phones only: the menu that replaces the nav links. Desktop opens the palette with ⌘K / Ctrl+K. */
-export function PaletteTrigger() {
-  return (
-    <button
-      type="button"
-      onClick={() => dispatchEvent(new Event(OPEN_EVENT))}
-      className="flex h-10 items-center rounded-md bg-bg-3 px-3.5 text-sm text-ink-2 transition-colors hover:text-ink md:hidden"
-    >
-      Menu
-    </button>
-  );
-}
-
 /** ⌘K / Ctrl+K menu: jump to any section, project or post, copy the email, open socials. */
 export function CommandPalette({ commands }: { commands: Command[] }) {
   const router = useRouter();

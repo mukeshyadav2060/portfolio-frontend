@@ -12,16 +12,17 @@ export function Skills({ groups }: { groups: SkillGroup[] }) {
             What I reach for, and how well I know it.
           </p>
         </div>
-        <div className="mt-16 grid gap-x-12 gap-y-14 md:grid-cols-2 lg:mt-20 lg:grid-cols-3">
+        <div className="mt-10 grid gap-x-12 gap-y-10 md:mt-16 md:grid-cols-2 md:gap-y-14 lg:mt-20 lg:grid-cols-3">
           {groups.map((g, gi) => (
             <div key={g.category}>
               <h3 suppressHydrationWarning data-reveal className="subtitle" style={{ "--d": gi * 90 } as React.CSSProperties}>
                 {g.category}
               </h3>
-              <ul className="mt-7 space-y-4">
+              {/* Phones: two columns of compact rows; from md up, the original single column. */}
+              <ul className="mt-5 grid grid-cols-2 gap-x-5 gap-y-4 md:mt-7 md:block md:space-y-4">
                 {g.items.map((s, i) => (
-                  <li key={s.name} suppressHydrationWarning data-reveal className="group" style={{ "--d": gi * 90 + i * 50 } as React.CSSProperties}>
-                    <div className="flex items-baseline justify-between text-lg">
+                  <li key={s.name} suppressHydrationWarning data-reveal className="group min-w-0" style={{ "--d": gi * 90 + i * 50 } as React.CSSProperties}>
+                    <div className="flex items-baseline justify-between gap-2 text-[0.9375rem] md:text-lg">
                       <span className="transition-colors group-hover:text-accent">{s.name}</span>
                       <span className="text-sm tabular-nums text-ink-3">{s.level}</span>
                     </div>
