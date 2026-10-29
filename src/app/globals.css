@@ -263,9 +263,10 @@ button {
   overflow: hidden;
   /* Soft edges so the plane dissolves into the page. */
   mask-image: radial-gradient(ellipse 62% 52% at 50% 50%, #000 42%, transparent 96%);
-  /* Phones: a decorative strip, not a full screen of tiles. */
+  /* Phones: a full-width rectangular strip that fades only at the top and bottom. */
   @media (max-width: 767px) {
     height: 22rem;
+    mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
   }
 }
 .wall-drift {
