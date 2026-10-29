@@ -30,6 +30,12 @@ export async function generateMetadata({ params }: PageProps<"/work/[slug]">): P
   });
 }
 
+/** Splits a before/after metric such as "60–70 → 99" into its two sides. */
+function splitChange(value: string) {
+  const match = value.match(/^(.+?)\s*(?:→|->)\s*(.+)$/);
+  return match ? { from: match[1], to: match[2] } : null;
+}
+
 async function CaseStudy({ params }: { params: PageProps<"/work/[slug]">["params"] }) {
   const { slug } = await params;
   const p = await getProject(slug);
@@ -123,13 +129,27 @@ async function CaseStudy({ params }: { params: PageProps<"/work/[slug]">["params
       </div>
 
       {p.metrics.length > 0 && (
-        <dl className="frame mt-20 grid grid-cols-2 gap-8 md:grid-cols-4">
-          {p.metrics.map((m, i) => (
-            <div key={m.label} suppressHydrationWarning data-reveal className="flex flex-col-reverse" style={{ "--d": i * 80 } as React.CSSProperties}>
-              <dt className="mt-2 text-ink-2">{m.label}</dt>
-              <dd className="text-[clamp(2.5rem,5vw,4.5rem)] font-semibold leading-none tracking-[-0.04em] text-accent">{m.value}</dd>
-            </div>
-          ))}
+        <dl className="frame mt-20 grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4 md:gap-8">
+          {p.metrics.map((m, i) => {
+            const change = splitChange(m.value);
+            return (
+              <div key={m.label} suppressHydrationWarning data-reveal className="flex min-w-0 flex-col-reverse" style={{ "--d": i * 80 } as React.CSSProperties}>
+                <dt className="mt-2 text-sm text-ink-2 md:text-base">{m.label}</dt>
+                <dd className="text-[clamp(2.25rem,5vw,4.5rem)] font-semibold leading-none tracking-[-0.04em] text-accent wrap-anywhere">
+                  {/* "60–70 → 99" reads as the result, with the starting point as a quiet line above it. */}
+                  {change ? (
+                    <>
+                      <span className="mb-2 block text-sm font-medium tracking-normal text-ink-2 tabular-nums md:text-base">from {change.from}</span>
+                      <span className="sr-only"> to </span>
+                      {change.to}
+                    </>
+                  ) : (
+                    m.value
+                  )}
+                </dd>
+              </div>
+            );
+          })}
         </dl>
       )}
 
