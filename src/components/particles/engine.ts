@@ -385,7 +385,10 @@ export function startField(
     // behind the text, scaled to the screen width.
     const wide = w >= 1024;
     // The shape is 2 units wide; scale so it spans ~31% of the screen (85% on phones).
-    [view.ox, view.oy] = wide ? [(0.56 * aspect) / 0.81, 0.06] : [0, -0.58];
+    // Plain assignments: the production minifier mis-compiles destructuring into these
+    // properties (it folds them to constants and emits invalid code).
+    view.ox = wide ? (0.56 * aspect) / 0.81 : 0;
+    view.oy = wide ? 0.06 : -0.58;
     gl.uniform2f(U.offset, view.ox, view.oy);
     gl.uniform1f(U.scale, wide ? (0.62 * aspect) / (2 * 0.81) : Math.min(0.62, (1.7 * aspect) / (2 * 0.81)));
     // On phones the triangle and the contact ring overlap the copy, so they stay a backdrop.
