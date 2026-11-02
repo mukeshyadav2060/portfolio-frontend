@@ -12,7 +12,7 @@ const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 
  * idle (on phones: after the first interaction), so it never competes with first paint,
  * LCP or input. On inner pages it stays a starfield.
  */
-export function ParticleField({ accent, initials }: { accent: string; initials: string }) {
+export function ParticleField({ accent }: { accent: string }) {
   const host = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const isHome = pathname === "/";
@@ -53,12 +53,10 @@ export function ParticleField({ accent, initials }: { accent: string; initials: 
       if (started || cancelled) return;
       started = true;
       measure();
-      // The initials are drawn in the site's display face, so wait until it has loaded.
-      const font = getComputedStyle(document.documentElement).getPropertyValue("--font-display-face").trim() || "sans-serif";
-      Promise.all([import("./engine"), document.fonts.load(`800 100px ${font}`).catch(() => [])]).then(([{ startField }]) => {
+      import("./engine").then(({ startField }) => {
         if (cancelled) return;
         try {
-          stop = startField(el, { accent, text: initials, font, reduced: prefersReducedMotion(), read });
+          stop = startField(el, { accent, reduced: prefersReducedMotion(), read });
           el.dataset.ready = "";
         } catch (error) {
           console.warn("Particle field disabled:", error);
@@ -88,7 +86,7 @@ export function ParticleField({ accent, initials }: { accent: string; initials: 
       stop?.();
       delete el.dataset.ready;
     };
-  }, [accent, initials]);
+  }, [accent]);
 
   return (
     <div

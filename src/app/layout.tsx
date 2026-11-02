@@ -4,7 +4,7 @@ import { cacheLife } from "next/cache";
 import { ViewTransition } from "react";
 import "./globals.css";
 import { getPosts, getProfile, getProjects } from "@/lib/api";
-import { initialsOf, siteUrl } from "@/lib/format";
+import { siteUrl } from "@/lib/format";
 import { theme } from "@/lib/theme";
 import { Header, NAV } from "@/components/site/header";
 import { Footer } from "@/components/site/footer";
@@ -116,10 +116,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-100 focus:rounded-full focus:bg-accent focus:px-4 focus:py-2 focus:text-accent-ink">
           Skip to content
         </a>
-        <ParticleField
-          accent={accent}
-          initials={initialsOf(profile.name)}
-        />
+        <ParticleField accent={accent} />
         <Header profile={profile} nav={nav} />
         <ViewTransition>
           <main id="main" tabIndex={-1} className="relative z-10 outline-none">

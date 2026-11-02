@@ -1,13 +1,18 @@
 /**
  * A dependency-free WebGL particle field (~4 KB gzipped).
  *
- * Every particle carries three positions: in the owner's initials (hero), in a starfield (the scroll
- * between sections) and on a ring (contact). The vertex shader blends between them from
- * two uniforms the page drives with scroll position, so the CPU only updates uniforms.
+ * Every particle carries three positions: on an impossible triangle (hero), in a starfield
+ * (the scroll between sections) and on a ring (contact). The vertex shader blends between
+ * them from two uniforms the page drives with scroll position, so the CPU only updates uniforms.
+ *
+ * The triangle is a real object: three square beams at right angles. Seen exactly along
+ * (1, 1, 1) its two loose ends line up and it closes into a Penrose triangle, and light
+ * streams along it in a loop that looks endless from that one angle. The pointer tilts it
+ * and gives the trick away; at rest it settles back.
  */
 
 export type FieldState = {
-  /** 0 → initials, 1 → starfield */
+  /** 0 → triangle, 1 → starfield */
   scatter: number;
   /** 0 → current, 1 → ring */
   ring: number;
@@ -19,6 +24,9 @@ attribute vec3 aShape;
 attribute vec3 aStar;
 attribute vec3 aRing;
 attribute vec4 aRand;
+// x brightness, y position along the light loop (−1 for the triangle's surface, −2 for
+// surface hidden in the impossible view), z tone.
+attribute vec3 aMeta;
 
 uniform float uTime;
 uniform float uScatter;
@@ -31,6 +39,12 @@ uniform float uPointer;
 uniform vec2 uMouse;
 uniform vec2 uOffset;
 uniform float uDim;
+uniform vec2 uTilt;
+// Corners of the light loop, in the same frame as aShape.
+uniform vec3 uPath0;
+uniform vec3 uPath1;
+uniform vec3 uPath2;
+uniform vec3 uPath3;
 
 varying float vAlpha;
 varying float vTone;
@@ -39,16 +53,33 @@ varying float vStar;
 mat3 rotY(float a) { float c = cos(a), s = sin(a); return mat3(c, 0., -s, 0., 1., 0., s, 0., c); }
 mat3 rotX(float a) { float c = cos(a), s = sin(a); return mat3(1., 0., 0., 0., c, s, 0., -s, c); }
 
+vec3 loopAt(float u) {
+  float k = u * 3.0;
+  if (k < 1.0) return mix(uPath0, uPath1, k);
+  if (k < 2.0) return mix(uPath1, uPath2, k - 1.0);
+  return mix(uPath2, uPath3, k - 2.0);
+}
+
 void main() {
   float t = uTime;
 
-  // Initials: a wave ripples through the letters, every particle drifts on its own
-  // orbit, and the whole sculpture sways without ever turning its back.
-  vec3 s = aShape;
-  s.z += sin(s.x * 2.6 - t * 1.6) * 0.09 + sin(s.y * 3.4 + t * 1.1) * 0.05;
-  s += vec3(sin(t * 1.3 + aRand.x * 6.283), cos(t * 1.1 + aRand.y * 6.283), sin(t * 0.9 + aRand.z * 6.283)) * 0.012;
-  s = rotY(sin(t * 0.35) * 0.32) * rotX(sin(t * 0.27) * 0.1 - 0.06) * s;
-  float facing = s.z * 2.5;
+  // Triangle surface, or light travelling the loop (aShape is then a small offset).
+  float u = fract(aMeta.y + t * 0.045);
+  vec3 s = aMeta.y < 0.0 ? aShape : loopAt(u) + aShape;
+  // A slow turn about the line of sight keeps the illusion intact from every angle.
+  float spin = t * 0.1;
+  float cs = cos(spin), sn = sin(spin);
+  s.xy = vec2(cs * s.x - sn * s.y, sn * s.x + cs * s.y);
+  // A barely-there nod around the impossible view; the pointer tilts it further.
+  vec2 tilt = vec2(sin(t * 0.4) * 0.025, sin(t * 0.31) * 0.02) + uTilt;
+  s = rotY(tilt.x) * rotX(tilt.y) * s;
+  // How far the pointer has given the trick away: parts hidden in the impossible view fade
+  // in, and the light fades at the loop's seam rather than jumping across the gap.
+  float reveal = smoothstep(0.02, 0.15, length(uTilt));
+  float seam = smoothstep(0.0, 0.06, u) * (1.0 - smoothstep(0.94, 1.0, u));
+  float show = aMeta.y < -1.5 ? reveal : aMeta.y < 0.0 ? 1.0 : mix(1.0, seam, reveal);
+  // Orthographic: any perspective would open the gap that the illusion hides.
+  s.z = 0.0;
   s = s * uScale + vec3(uOffset, 0.);
 
   // Starfield: drifts upward with scroll at per-star speed (parallax).
@@ -72,20 +103,20 @@ void main() {
   vec2 d = ndc - uMouse;
   d.x *= uAspect;
   float dist = length(d);
-  float push = smoothstep(0.32, 0.0, dist) * uPointer;
+  float push = smoothstep(0.32, 0.0, dist) * uPointer * 0.5;
   ndc += (d / max(dist, 0.0001)) * push * vec2(0.1 / uAspect, 0.1);
 
   gl_Position = vec4(ndc, 0., 1.);
 
   float twinkle = mix(1.0, 0.55 + 0.6 * sin(t * 1.7 + aRand.x * 40.0), uScatter * (1.0 - uRing));
-  gl_PointSize = (2.2 + aRand.w * 3.2) * persp * uPixel * twinkle;
+  float fine = mix(aMeta.y < 0.0 ? 0.8 : 1.15, 1.0, uScatter);
+  gl_PointSize = (2.2 + aRand.w * 3.2) * persp * uPixel * twinkle * fine;
 
-  float shapeAlpha = mix(1.0, 0.3, smoothstep(-1.0, 1.0, facing));
-  vAlpha = mix(shapeAlpha, 0.35 + 0.65 * aRand.z, uScatter);
+  vAlpha = mix(aMeta.x * show, 0.35 + 0.65 * aRand.z, uScatter);
   vAlpha = mix(vAlpha, 0.9, uRing) * (0.75 + push);
-  vTone = clamp(aRand.y * 0.6 + 0.2 + aShape.y * 0.45, 0., 1.);
+  vTone = aMeta.z;
   vStar = uScatter * (1.0 - uRing);
-  // The initials and ring are dimmed where they sit behind text; the starfield never is.
+  // The triangle and ring are dimmed where they sit behind text; the starfield never is.
   vAlpha *= mix(uDim, 1.0, vStar);
 }
 `;
@@ -125,61 +156,137 @@ function compile(gl: WebGLRenderingContext, type: number, src: string) {
   return sh;
 }
 
+type Vec3 = [number, number, number];
+
+/** Beam length and thickness of the triangle, in its own units. */
+const L = 4;
+const W = 1;
+
 /**
- * Samples `count` points from `text` drawn on an off-screen canvas in `font`, centred and
- * normalised to roughly 2 units wide, with depth so the letters read as a volume.
- * Falls back to a sphere if nothing could be drawn.
+ * World → screen for the impossible view: looking along (1, 1, 1), turned so the triangle
+ * stands on its base. z grows away from the viewer.
  */
-function sampleText(text: string, font: string, count: number): Float32Array {
-  const out = new Float32Array(count * 3);
-  const W = 640;
-  const H = 360;
-  const c = document.createElement("canvas");
-  c.width = W;
-  c.height = H;
-  const ctx = c.getContext("2d", { willReadFrequently: true });
-  const filled: number[] = [];
-  if (ctx) {
-    ctx.fillStyle = "#fff";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.font = `800 300px ${font}`;
-    const measured = ctx.measureText(text).width;
-    if (measured > W * 0.92) ctx.font = `800 ${Math.floor((300 * W * 0.92) / measured)}px ${font}`;
-    ctx.fillText(text, W / 2, H / 2 + 10);
-    const data = ctx.getImageData(0, 0, W, H).data;
-    for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) if (data[(y * W + x) * 4 + 3] > 128) filled.push(x, y);
-  }
-  if (filled.length < 200) {
-    for (let i = 0; i < count; i++) {
-      const u = Math.random() * 2 - 1;
-      const th = Math.random() * Math.PI * 2;
-      const r = Math.sqrt(1 - u * u);
-      out.set([Math.cos(th) * r, u, Math.sin(th) * r], i * 3);
-    }
-    return out;
-  }
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-  for (let i = 0; i < filled.length; i += 2) {
-    minX = Math.min(minX, filled[i]); maxX = Math.max(maxX, filled[i]);
-    minY = Math.min(minY, filled[i + 1]); maxY = Math.max(maxY, filled[i + 1]);
-  }
-  const scale = 2 / Math.max(maxX - minX, (maxY - minY) * 1.6);
-  const cx = (minX + maxX) / 2;
-  const cy = (minY + maxY) / 2;
-  const pts = filled.length / 2;
-  for (let i = 0; i < count; i++) {
-    const k = ((Math.random() * pts) | 0) * 2;
-    out.set(
-      [(filled[k] - cx + Math.random() * 2) * scale, -(filled[k + 1] - cy + Math.random() * 2) * scale, (Math.random() - 0.5) * 0.32],
-      i * 3,
-    );
-  }
-  return out;
+function view([x, y, z]: Vec3): Vec3 {
+  const sx = (-x + z) / Math.SQRT2;
+  const sy = (-x + 2 * y - z) / Math.sqrt(6);
+  return [-sy, sx, -(x + y + z) / Math.sqrt(3)];
 }
 
-function buildGeometry(count: number, text: string, font: string) {
-  const shape = sampleText(text, font, count);
+/**
+ * Samples the visible faces and edges of the three beams as seen from the impossible view,
+ * keeping only points nothing nearer hides (a small z-buffer), so the joints overlap the way
+ * the classic drawing does. Also returns the light loop's corners in the same frame.
+ */
+function sampleTriangle(surface: number, flow: number) {
+  // Beams along x, then y, then z, each as [min, max] corners.
+  const boxes: [Vec3, Vec3][] = [
+    [[0, 0, 0], [L + W, W, W]],
+    [[L, 0, 0], [L + W, L + W, W]],
+    [[L, L, 0], [L + W, L + W, L + W]],
+  ];
+  // Faces turned towards the viewer (+x, +y, +z) as [axis, brightness, tone]: the +y face reads
+  // as the lit top of each beam, the other two as its sides in light and shade.
+  const shading: [number, number][] = [[0.6, 0.5], [1.0, 0.9], [0.3, 0.1]];
+  const faces: { lo: Vec3; hi: Vec3; axis: number; area: number }[] = [];
+  const edges: { a: Vec3; b: Vec3; length: number }[] = [];
+  for (const [lo, hi] of boxes) {
+    for (let axis = 0; axis < 3; axis++) {
+      const [e1, e2] = [0, 1, 2].filter((a) => a !== axis);
+      faces.push({ lo, hi, axis, area: (hi[e1] - lo[e1]) * (hi[e2] - lo[e2]) });
+      // The face's four borders become bright edge lines.
+      for (const [run, fix] of [[e1, e2], [e2, e1]]) {
+        for (const at of [lo[fix], hi[fix]]) {
+          const a: Vec3 = [...lo];
+          a[axis] = hi[axis];
+          a[fix] = at;
+          const b: Vec3 = [...a];
+          b[run] = hi[run];
+          edges.push({ a, b, length: hi[run] - lo[run] });
+        }
+      }
+    }
+  }
+  // Area- and length-weighted picks, so long beams are as dense as short end caps.
+  const pick = <T,>(items: T[], weight: (t: T) => number) => {
+    const sum = items.reduce((s, t) => s + weight(t), 0);
+    return () => {
+      let r = Math.random() * sum;
+      for (const t of items) if ((r -= weight(t)) <= 0) return t;
+      return items[items.length - 1];
+    };
+  };
+  const face = pick(faces, (f) => f.area);
+  const edge = pick(edges, (e) => e.length);
+  const cand: { p: Vec3; shade: number; tone: number }[] = [];
+  for (let n = 0; n < surface * 2.4; n++) {
+    if (Math.random() < 0.28) {
+      const { a, b } = edge();
+      const u = Math.random();
+      cand.push({ p: view([a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u]), shade: 1.1, tone: 0.95 });
+    } else {
+      const { lo, hi, axis } = face();
+      const p: Vec3 = [lo[0] + Math.random() * (hi[0] - lo[0]), lo[1] + Math.random() * (hi[1] - lo[1]), lo[2] + Math.random() * (hi[2] - lo[2])];
+      p[axis] = hi[axis];
+      const [shade, tone] = shading[axis];
+      cand.push({ p: view(p), shade, tone });
+    }
+  }
+
+  // Hidden-surface removal on a grid: keep points within a hair of the nearest depth.
+  const cell = W / 14;
+  const nearest = new Map<number, number>();
+  const key = (p: Vec3) => Math.round(p[0] / cell) * 100003 + Math.round(p[1] / cell);
+  for (const c of cand) nearest.set(key(c.p), Math.min(nearest.get(key(c.p)) ?? Infinity, c.p[2]));
+  const shown = (c: (typeof cand)[number]) => c.p[2] <= nearest.get(key(c.p))! + W * 0.06;
+  const kept = cand.filter(shown);
+  const hidden = cand.filter((c) => !shown(c));
+
+  // Centre in all three axes (so a tilt pivots in place) and scale to ~1.75 units tall.
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, minZ = Infinity, maxZ = -Infinity;
+  for (const { p } of kept) {
+    minX = Math.min(minX, p[0]); maxX = Math.max(maxX, p[0]);
+    minY = Math.min(minY, p[1]); maxY = Math.max(maxY, p[1]);
+    minZ = Math.min(minZ, p[2]); maxZ = Math.max(maxZ, p[2]);
+  }
+  const k = 1.75 / (maxY - minY);
+  const [cx, cy, cz] = [(minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2];
+  const fit = ([x, y, z]: Vec3): Vec3 => [(x - cx) * k, (y - cy) * k, (z - cz) * k];
+
+  const shape = new Float32Array((surface + flow) * 3);
+  const meta = new Float32Array((surface + flow) * 3);
+  // Light first, so it survives the adaptive-quality cut (which drops from the end): packets
+  // of particles with bright heads and fading tails, spread evenly round the loop.
+  const packets = 9;
+  for (let i = 0; i < flow; i++) {
+    const tail = Math.pow(Math.random(), 1.6);
+    shape.set([(Math.random() - 0.5) * 0.03, (Math.random() - 0.5) * 0.03, 0], i * 3);
+    meta.set([1.25 * (1 - tail) + 0.1, ((i % packets) / packets - tail * 0.04 + 1) % 1, 1], i * 3);
+  }
+  // Most points draw the impossible view; the rest fill in what it hides, shown only when the
+  // pointer tilts the triangle so the beams never have holes.
+  for (let i = 0; i < surface; i++) {
+    const back = hidden.length > 0 && Math.random() < 0.22;
+    const list = back ? hidden : kept;
+    const c = list[(Math.random() * list.length) | 0];
+    shape.set(fit(c.p), (flow + i) * 3);
+    meta.set([c.shade, back ? -2 : -1, c.tone], (flow + i) * 3);
+  }
+
+  // The loop runs near each beam's front ridge; its last corner sits exactly behind its first
+  // along the line of sight, which is what makes it look endless.
+  const o = W * 0.45;
+  const corners: Vec3[] = [
+    [W / 2 + o, W / 2 + o, W / 2 + o],
+    [L + W / 2 + o, W / 2 + o, W / 2 + o],
+    [L + W / 2 + o, L + W / 2 + o, W / 2 + o],
+    [L + W / 2 + o, L + W / 2 + o, L + W / 2 + o],
+  ];
+  return { shape, meta, path: corners.map((p) => fit(view(p))) };
+}
+
+function buildGeometry(count: number) {
+  const flow = Math.round(count * 0.07);
+  const { shape, meta, path } = sampleTriangle(count - flow, flow);
   const star = new Float32Array(count * 3);
   const ring = new Float32Array(count * 3);
   const rand = new Float32Array(count * 4);
@@ -194,7 +301,7 @@ function buildGeometry(count: number, text: string, font: string) {
 
     rand.set([Math.random(), Math.random(), Math.random(), Math.random()], i * 4);
   }
-  return { shape, star, ring, rand };
+  return { shape, meta, path, star, ring, rand };
 }
 
 /**
@@ -203,7 +310,7 @@ function buildGeometry(count: number, text: string, font: string) {
  */
 export function startField(
   host: HTMLElement,
-  opts: { accent: string; text: string; font: string; reduced: boolean; read: () => FieldState },
+  opts: { accent: string; reduced: boolean; read: () => FieldState },
 ) {
   const canvas = document.createElement("canvas");
   canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%";
@@ -220,7 +327,7 @@ export function startField(
 
   const small = innerWidth < 768;
   const count = small ? 5000 : (navigator.hardwareConcurrency ?? 4) >= 8 ? 16000 : 11000;
-  const geo = buildGeometry(count, opts.text, opts.font);
+  const geo = buildGeometry(count);
 
   const attr = (name: string, data: Float32Array, size: number) => {
     const loc = gl.getAttribLocation(program, name);
@@ -234,6 +341,7 @@ export function startField(
   attr("aStar", geo.star, 3);
   attr("aRing", geo.ring, 3);
   attr("aRand", geo.rand, 4);
+  attr("aMeta", geo.meta, 3);
 
   const u = (name: string) => gl.getUniformLocation(program, name);
   const U = {
@@ -251,14 +359,17 @@ export function startField(
     cool: u("uCool"),
     fade: u("uFade"),
     dim: u("uDim"),
+    tilt: u("uTilt"),
   };
   gl.uniform3fv(U.accent, hexToRgb(opts.accent));
   gl.uniform3fv(U.cool, [0, 0.639, 1.0]);
+  geo.path.forEach((p, i) => gl.uniform3fv(u(`uPath${i}`), p));
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
   gl.clearColor(0, 0, 0, 0);
 
   let aspect = 1;
+  const view = { ox: 0, oy: 0 };
   let maxDpr = small ? 1.5 : 1.75;
   const resize = () => {
     const dpr = Math.min(devicePixelRatio || 1, maxDpr);
@@ -270,19 +381,21 @@ export function startField(
     aspect = w / h;
     gl.uniform1f(U.aspect, aspect);
     gl.uniform1f(U.pixel, dpr);
-    // Desktop: the initials sit in the right half beside the headline. Phone: lower,
+    // Desktop: the triangle sits in the right half beside the headline. Phone: lower,
     // behind the text, scaled to the screen width.
     const wide = w >= 1024;
     // The shape is 2 units wide; scale so it spans ~31% of the screen (85% on phones).
-    gl.uniform2fv(U.offset, wide ? [(0.56 * aspect) / 0.81, 0.06] : [0, -0.58]);
+    [view.ox, view.oy] = wide ? [(0.56 * aspect) / 0.81, 0.06] : [0, -0.58];
+    gl.uniform2f(U.offset, view.ox, view.oy);
     gl.uniform1f(U.scale, wide ? (0.62 * aspect) / (2 * 0.81) : Math.min(0.62, (1.7 * aspect) / (2 * 0.81)));
-    // On phones the initials and the contact ring overlap the copy, so they stay a backdrop.
+    // On phones the triangle and the contact ring overlap the copy, so they stay a backdrop.
     gl.uniform1f(U.dim, wide ? 1 : 0.32);
   };
   resize();
 
-  // Pointer, smoothed.
+  // Pointer, smoothed. Its offset from the triangle tilts it, revealing the trick.
   const mouse = { x: 0, y: 0, tx: 0, ty: 0, energy: 0 };
+  const tilt = { x: 0, y: 0 };
   const onPointer = (e: PointerEvent) => {
     mouse.tx = (e.clientX / innerWidth) * 2 - 1;
     mouse.ty = -((e.clientY / innerHeight) * 2 - 1);
@@ -325,6 +438,13 @@ export function startField(
     mouse.x += (mouse.tx - mouse.x) * 0.08;
     mouse.y += (mouse.ty - mouse.y) * 0.08;
     mouse.energy *= 0.985;
+    // Lean with the pointer while it is active, then settle back into the impossible view.
+    const cx = (view.ox * 0.81) / aspect;
+    const cy = view.oy * 0.81;
+    const tx = opts.reduced ? 0 : Math.max(-1, Math.min(1, (mouse.x - cx) * 1.5)) * 0.35 * mouse.energy;
+    const ty = opts.reduced ? 0 : Math.max(-1, Math.min(1, (mouse.y - cy) * 1.5)) * -0.28 * mouse.energy;
+    tilt.x += (tx - tilt.x) * 0.06;
+    tilt.y += (ty - tilt.y) * 0.06;
 
     const s = opts.read();
     gl.uniform1f(U.time, time);
@@ -333,6 +453,7 @@ export function startField(
     gl.uniform1f(U.scroll, s.scrollY);
     gl.uniform1f(U.pointer, opts.reduced ? 0 : mouse.energy);
     gl.uniform2f(U.mouse, mouse.x, mouse.y);
+    gl.uniform2f(U.tilt, tilt.x, tilt.y);
     gl.uniform1f(U.fade, opts.reduced ? 1 : fade);
 
     gl.clear(gl.COLOR_BUFFER_BIT);
